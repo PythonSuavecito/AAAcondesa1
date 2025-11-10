@@ -47,6 +47,12 @@ cat > templates/index.html << 'EOF'
         .btn:hover {
             background-color: #0056b3;
         }
+        .btn-bonos {
+            background-color: #28a745;
+        }
+        .btn-bonos:hover {
+            background-color: #218838;
+        }
         .file-input {
             margin: 10px 0;
         }
@@ -65,7 +71,7 @@ cat > templates/index.html << 'EOF'
 </head>
 <body>
     <div class="container">
-        <h1>🔮 Generador de Reportes de Aniversarios</h1>
+        <h1>🔮 Generador de Reportes Divinos</h1>
         
         <div class="form-section">
             <h2>📊 Reporte de Aniversarios</h2>
@@ -84,9 +90,31 @@ cat > templates/index.html << 'EOF'
                 ⏳ Generando reporte celestial...
             </div>
         </div>
+
+        <div class="form-section">
+            <h2>💰 Reporte de Bonos</h2>
+            <div class="instructions">
+                <strong>Formato CSV requerido:</strong><br>
+                - GRUPO: Nombre del grupo<br>
+                - GUIA: Nombre del guía<br>
+                - BONO: Tipo de bono<br>
+                - MONTO: Valor del bono<br>
+                - ASISTENTES: Número de asistentes
+            </div>
+            <form id="bonosForm" enctype="multipart/form-data">
+                <div class="file-input">
+                    <input type="file" name="file" accept=".csv" required>
+                </div>
+                <button type="submit" class="btn btn-bonos">💫 Generar PDF de Bonos</button>
+            </form>
+            <div id="loadingBonos" class="loading">
+                ⏳ Generando reporte bendito...
+            </div>
+        </div>
     </div>
 
     <script>
+        // Manejar formulario de aniversarios
         document.getElementById('aniversariosForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const formData = new FormData(this);
@@ -107,6 +135,41 @@ cat > templates/index.html << 'EOF'
                     a.style.display = 'none';
                     a.href = url;
                     a.download = `aniversarios_${new Date().toISOString().slice(0,16)}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+
+        // Manejar formulario de bonos
+        document.getElementById('bonosForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const loading = document.getElementById('loadingBonos');
+            
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch('/generar_bonos', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = `bonos_${new Date().toISOString().slice(0,16)}.pdf`;
                     document.body.appendChild(a);
                     a.click();
                     window.URL.revokeObjectURL(url);

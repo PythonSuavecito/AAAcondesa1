@@ -9,12 +9,10 @@ from fpdf import FPDF
 from datetime import datetime
 import io
 import os
-import tempfile
 
 app = Flask(__name__)
 
-# --- Funciones para Aniversarios (genera_lista_junta.py) ---
-
+# --- FUNCIONES PARA BONOS (PODERSUPERIOR_REPORTE) ---
 def clean_numeric(value):
     """Convierte valores a float, manejando comas, puntos y textos."""
     try:
@@ -34,7 +32,7 @@ def format_currency(value):
 
 class PDF(FPDF):
     def __init__(self):
-        super().__init__(orientation='L')
+        super().__init__(orientation='L')  # Horizontal
         self.set_auto_page_break(auto=True, margin=15)
         self.set_font('Arial', '', 9)
         self.total_general = 0
@@ -114,8 +112,59 @@ class PDF(FPDF):
         total_formatted = f"{self.total_general:,.0f}".replace(",", " ") + " "
         self.cell(0, 8, f"TOTAL GENERAL: {total_formatted}", 0, 1, 'R')
 
+def crear_pdf_bonos(df):
+    """Crea PDF de bonos similar a PODERSUPERIOR_REPORTE.py"""
+    
+    def process_group(pdf, grupo, guia, group_df):
+        bonos = group_df['BONO'].tolist()
+        montos = group_df['MONTO'].tolist()
+        asistentes = group_df['ASISTENTES'].sum()
+        total = group_df['MONTO'].sum()
+        
+        pdf.total_general += total
+        
+        for i in range(0, len(bonos), 5):
+            chunk_bonos = bonos[i:i+5]
+            chunk_montos = montos[i:i+5]
+            
+            bonos_str = [str(b) if b is not None else "" for b in chunk_bonos]
+            montos_fmt = [format_currency(m) if m is not None else "" for m in chunk_montos]
+            bonos_str += [""] * (5 - len(chunk_bonos))
+            montos_fmt += [""] * (5 - len(chunk_montos))
+            
+            pdf.add_table_row(
+                grupo, guia, 
+                bonos_str, montos_fmt,
+                asistentes if i == 0 else 0,
+                total if i == 0 else 0,
+                i > 0
+            )
+    
+    # Limpiar datos
+    df['GRUPO'] = df['GRUPO'].str.strip().str.upper()
+    df['GUIA'] = df['GUIA'].str.strip()
+    df['MONTO'] = df['MONTO'].astype(str).str.replace(' DLS', '').str.replace(',', '')
+    df['MONTO'] = df['MONTO'].apply(clean_numeric)
+    df['ASISTENTES'] = df['ASISTENTES'].apply(clean_numeric)
+    
+    # Crear PDF
+    pdf = PDF()
+    pdf.add_page()
+    
+    for (grupo, guia), group_df in df.groupby(['GRUPO', 'GUIA']):
+        process_group(pdf, grupo, guia, group_df)
+    
+    pdf.add_total_general()
+    
+    # Guardar en buffer
+    buffer = io.BytesIO()
+    pdf.output(buffer)
+    buffer.seek(0)
+    return buffer
+
+# --- FUNCIONES PARA ANIVERSARIOS ---
 def crear_pdf_aniversarios(df):
-    """Crea PDF de aniversarios similar a genera_lista_junta.py"""
+    """Crea PDF de aniversarios"""
     buffer = io.BytesIO()
     
     # Configurar PDF
@@ -192,59 +241,7 @@ def crear_pdf_aniversarios(df):
     buffer.seek(0)
     return buffer
 
-def crear_pdf_bonos(df):
-    """Crea PDF de bonos similar a PODERSUPERIOR_REPORTE.py"""
-    
-    def process_group(pdf, grupo, guia, group_df):
-        bonos = group_df['BONO'].tolist()
-        montos = group_df['MONTO'].tolist()
-        asistentes = group_df['ASISTENTES'].sum()
-        total = group_df['MONTO'].sum()
-        
-        pdf.total_general += total
-        csv_rows = []
-        
-        for i in range(0, len(bonos), 5):
-            chunk_bonos = bonos[i:i+5]
-            chunk_montos = montos[i:i+5]
-            
-            bonos_str = [str(b) if b is not None else "" for b in chunk_bonos]
-            montos_fmt = [format_currency(m) if m is not None else "" for m in chunk_montos]
-            bonos_str += [""] * (5 - len(chunk_bonos))
-            montos_fmt += [""] * (5 - len(chunk_montos))
-            
-            pdf.add_table_row(
-                grupo, guia, 
-                bonos_str, montos_fmt,
-                asistentes if i == 0 else 0,
-                total if i == 0 else 0,
-                i > 0
-            )
-    
-    # Limpiar datos
-    df['GRUPO'] = df['GRUPO'].str.strip().str.upper()
-    df['GUIA'] = df['GUIA'].str.strip()
-    df['MONTO'] = df['MONTO'].astype(str).str.replace(' DLS', '').str.replace(',', '')
-    df['MONTO'] = df['MONTO'].apply(clean_numeric)
-    df['ASISTENTES'] = df['ASISTENTES'].apply(clean_numeric)
-    
-    # Crear PDF
-    pdf = PDF()
-    pdf.add_page()
-    
-    for (grupo, guia), group_df in df.groupby(['GRUPO', 'GUIA']):
-        process_group(pdf, grupo, guia, group_df)
-    
-    pdf.add_total_general()
-    
-    # Guardar en buffer
-    buffer = io.BytesIO()
-    pdf.output(buffer)
-    buffer.seek(0)
-    return buffer
-
-# --- Rutas de Flask ---
-
+# --- RUTAS DE FLASK ---
 @app.route('/')
 def index():
     return render_template('index.html')
