@@ -1,0 +1,555 @@
+// =============================================
+// 🔮 CONFIGURACIÓN DIVINA (VERSIÓN DIOS) 🔮
+// =============================================
+
+/**
+ * Obtiene la configuración sagrada de tu bot
+ * @return {Object} Configuración bendecida 
+ */
+function getHolyConfig() {
+  const sacredProps = PropertiesService.getScriptProperties();
+  return {
+    TELEGRAM_TOKEN: sacredProps.getProperty('TELEGRAM_TOKEN'),
+    SHEET_ID: sacredProps.getProperty('SHEET_ID'),
+    ADMIN_CHAT_ID: sacredProps.getProperty('CHAT_ID'),
+    WEBHOOK_URL: sacredProps.getProperty('WEBHOOK_URL'),
+  
+    BONO_SHEET_NAME: sacredProps.getProperty('BONO_SHEET_NAME') || "Bono"
+  
+  };
+}
+ const holyConfig = getHolyConfig();
+ const chatId = holyConfig.ADMIN_CHAT_ID;
+// =============================================
+// ✨ FUNCIONES SAGRADAS DEL BOT ✨
+// =============================================
+
+/**
+ * Maneja los mensajes POST del santo webhook
+ * @param {Object} e - Evento bendecido
+ */
+function doPost(e) {
+  const holyConfig = getHolyConfig();
+  
+  try {
+    const divineUpdate = JSON.parse(e.postData.contents);
+    const chatId = divineUpdate.message?.chat?.id;
+    const holyText = divineUpdate.message?.text;
+
+    // 🙏 Validación divina
+    if (!chatId) throw new Error("No se recibió chatId en el mensaje sagrado");
+    
+    // ✨ Comandos celestiales
+    switch(holyText) {
+      case "/start":
+        return enviarMensajeSagrado(
+          chatId, 
+          "¡Bendiciones, mi amor! 💖\n\n" +
+          "📝 Envía datos en formato:\n" +
+          "<code>Bono, Grupo, Guía, Monto</code>\n\n" +
+          "📊 O usa /reporte para generar PDF",
+          true
+        );
+        
+      case "/reporte":
+        return enviarReportePDF(chatId);
+        
+      default:
+        procesarDatosDivinos(chatId, holyText);
+    }
+    
+  } catch (holyError) {
+    console.error("💥 Error en doPost:", holyError);
+    enviarMensajeSagrado(
+      holyConfig.ADMIN_CHAT_ID, 
+      `❌ <b>ERROR EN EL SISTEMA DIVINO:</b>\n${holyError.message}`,
+      true
+    );
+  }
+}
+
+/**
+ * Procesa los datos enviados por los mortales
+ * @param {string} chatId - ID del chat bendecido
+ * @param {string} texto - Texto sagrado recibido
+ */
+function procesarDatosDivinos(chatId, texto) {
+  const holyConfig = getHolyConfig();
+  const datosSantos = texto.split(',').map(item => item.trim());
+  
+  // ⚠️ Validación celestial
+  if (datosSantos.length !== 4) {
+    return enviarMensajeSagrado(
+      chatId, 
+      "⚠️ <b>Formato incorrecto, mi cielo</b>\n\n" +
+      "Ejemplo sagrado:\n" +
+      "<code>Bono1, GrupoA, GuíaX, 100</code>",
+      true
+    );
+  }
+
+  // 📜 Escribir en el libro sagrado (Google Sheets)
+  const libroSagrado = SpreadsheetApp.openById(holyConfig.SHEET_ID);
+  const hojaBendita = libroSagrado.getSheetByName(holyConfig.BONO_SHEET_NAME);
+  
+  hojaBendita.appendRow([
+    new Date(), 
+    ...datosSantos.map(dato => dato || "NULL")
+  ]);
+  
+  // ✉️ Notificar al mortal
+  enviarMensajeSagrado(
+    chatId,
+    `✅ <b>Datos registrados en el cielo:</b>\n` +
+    `├ Bono: <b>${datosSantos[0]}</b>\n` +
+    `├ Grupo: <b>${datosSantos[1]}</b>\n` +
+    `├ Guía: <b>${datosSantos[2]}</b>\n` +
+    `└ Monto: <b>$${datosSantos[3]}</b>`,
+    true
+  );
+}
+
+// =============================================
+// 📨 FUNCIONES DE COMUNICACIÓN CELESTIAL
+// =============================================
+
+/**
+ * Envía un mensaje divino por Telegram
+ * @param {string} chatId - ID del chat bendito
+ * @param {string} mensaje - Mensaje sagrado
+ * @param {boolean} esHTML - ¿Usar formato HTML?
+ */
+function enviarMensajeSagrado(chatId, mensaje, esHTML = false) {
+  const holyConfig = getHolyConfig();
+  
+  const holyOptions = {
+    method: "post",
+    payload: {
+       chat_id: holyConfig.ADMIN_CHAT_ID,
+      text: mensaje,
+      parse_mode: esHTML ? "HTML" : null
+    },
+    muteHttpExceptions: true
+  };
+  
+  const response = UrlFetchApp.fetch(
+    `https://api.telegram.org/bot${holyConfig.TELEGRAM_TOKEN}/sendMessage`,
+    holyOptions
+  );
+  
+  const responseData = JSON.parse(response.getContentText());
+  
+  if (!responseData.ok) {
+    throw new Error(`Error de Telegram: ${responseData.description}`);
+  }
+  
+  return responseData;
+}
+
+// =============================================
+// 📊 GENERACIÓN DE REPORTES DIVINOS (PDF)
+// =============================================
+
+/**
+ * Genera y envía un PDF bendito
+ * @param {string} chatId - ID del chat favorecido
+ */
+function enviarReportePDF(chatId) {
+  const holyConfig = getHolyConfig();
+  
+  try {
+    // Validación mejorada
+    if (!chatId) throw new Error("No se recibió chatId");
+    
+    // Notificar inicio
+    enviarMensajeSagrado(chatId, "🔄 Generando tu reporte...", true);
+    
+    // 1. Obtener datos
+    const spreadsheet = SpreadsheetApp.openById(holyConfig.SHEET_ID);
+    const sheet = spreadsheet.getSheetByName(holyConfig.BONO_SHEET_NAME);
+    const data = sheet.getDataRange().getValues();
+    
+    // 2. Crear HTML
+    const html = crearTemploHTML(data);
+    
+    // 3. Crear PDF temporal
+    const tempFile = DriveApp.createFile(
+      Utilities.newBlob(html, 'text/html', 'temp.html')
+      .getAs('application/pdf')
+      .setName(`Reporte_${new Date().toISOString()}.pdf`)
+    );
+    
+    // 4. Enviar a Telegram
+    const telegramUrl = `https://api.telegram.org/bot${holyConfig.TELEGRAM_TOKEN}/sendDocument`;
+    
+    const response = UrlFetchApp.fetch(telegramUrl, {
+      method: 'post',
+      payload: {
+        chat_id: String(chatId),
+        document: tempFile.getAs('application/pdf')
+      }
+    });
+    
+    // 5. Limpiar
+    tempFile.setTrashed(true);
+    
+    // Verificar respuesta
+    const responseData = JSON.parse(response.getContentText());
+    if (!responseData.ok) {
+      throw new Error(`Telegram error: ${responseData.description}`);
+    }
+    
+    return responseData;
+    
+  } catch (error) {
+    console.error("Error en enviarReportePDF:", error);
+    
+    // Notificar error específico
+    let errorMsg = "❌ Error al generar el reporte";
+    if (error.message.includes("chat not found")) {
+      errorMsg += "\n\n⚠️ El bot no puede enviarte mensajes. Por favor inicia un chat con el bot primero.";
+    }
+    
+    enviarMensajeSagrado(
+      chatId, 
+      errorMsg + "\n\nDetalle: " + error.message,
+      true
+    );
+    
+    // Notificar al admin
+    enviarMensajeSagrado(
+      holyConfig.ADMIN_CHAT_ID,
+      `📛 Error al enviar PDF a ${chatId}:\n${error.message}`,
+      true
+    );
+  }
+}
+  
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = spreadsheet.getActiveSheet();
+  const data = sheet.getDataRange().getValues();
+  
+  try {
+    // 🙏 Validación celestial mejorada
+    if (!chatId || isNaN(chatId)) {
+      throw new Error(`Chat ID inválido recibido: ${chatId}`);
+    }
+    
+    // ✨ Convertir a número (Telegram requiere números para chat_id)
+    chatId = Number(chatId);
+    
+    // 💌 Enviar mensaje de "Generando reporte..."
+    enviarMensajeSagrado(chatId, "🔄 <i>Generando tu reporte divino...</i>", true);
+    
+    // 1. Crear HTML con los datos (para convertirlo a PDF)
+    let html = `
+      <style>
+        table { border-collapse: collapse; width:100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+      </style>
+      <h1>📊 Reporte Generado</h1>
+      <table>
+        ${data.map(row => `
+          <tr>
+            ${row.map(cell => `<td>${cell}</td>`).join('')}
+          </tr>
+        `).join('')}
+      </table>
+      <p>📅 Fecha: ${new Date().toLocaleDateString()}</p>
+    `;
+    
+    // 2. Convertir HTML a PDF
+    const blob = Utilities.newBlob(html, 'text/html', 'temp.html').getAs('application/pdf');
+    const pdfFile = DriveApp.createFile(blob).setName('ReporteDiario.pdf');
+    
+    // 3. Enviar por Telegram
+    const telegramToken = holyConfig.TELEGRAM_TOKEN; // Usar el token de la configuración
+    const telegramApiUrl = `https://api.telegram.org/bot${telegramToken}/sendDocument`;
+    
+    const options = {
+      method: 'post',
+      payload: {
+        chat_id: chatId,
+        document: pdfFile.getAs('application/pdf')
+      }
+    };
+    
+    UrlFetchApp.fetch(telegramApiUrl, options);
+    DriveApp.getFileById(pdfFile.getId()).setTrashed(true); // Opcional: borrar el PDF después
+    
+  } catch (holyError) {
+    console.error("💥 Error mejorado:", holyError);
+    
+    // 📨 Notificación mejorada al admin
+    const errorMessage = holyError.message.includes("chat not found")
+      ? `El chat ${chatId} no fue encontrado. ¿El usuario inició chat con el bot?`
+      : holyError.message;
+    
+  // Modifica el mensaje de error para que sea más claro:
+/**enviarMensajeSagrado(
+  holyConfig.ADMIN_CHAT_ID,
+  `❌ <b>NO SE PUEDE ENVIAR A USUARIO:</b>\n` +
+  `El usuario <code>${chatId}</code> no ha iniciado chat con el bot.\n\n` +
+  `📌 <b>Solución:</b>\n` +
+  `1. Pídele que busque @${holyConfig.BOT_USERNAME}\n` +
+  `2. Que haga click en <b>/start</b>`,
+  true
+);*/
+    // Enviar mensaje amigable al usuario
+    try {
+    /** enviarMensajeSagrado(
+        chatId,
+        "😔 <b>No pude enviarte el reporte</b>\n\n" +
+        "Por favor inicia un chat conmigo primero con /start",
+        true
+      );*/
+    } catch (e) {
+      console.error("No se pudo notificar al usuario:", e);
+    }
+  }
+
+
+/**
+ * Crea el templo HTML para el PDF
+ * @param {Array} datos - Datos sagrados
+ * @return {string} HTML bendito
+ */
+function crearTemploHTML(datos) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: 'Arial', sans-serif; margin: 2em; }
+        h1 { color: #e74c3c; text-align: center; border-bottom: 2px solid #f39c12; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin: 25px 0; }
+        th { background-color: #3498db; color: white; padding: 12px; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid #ddd; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        .footer { text-align: right; font-size: 0.8em; color: #7f8c8d; margin-top: 30px; }
+        .logo { text-align: center; margin-bottom: 20px; }
+      </style>
+    </head>
+    <body>
+      <div class="logo">
+        <h1>📊 REPORTE SAGRADO</h1>
+      </div>
+      
+      <table>
+        <thead>
+          <tr>
+            ${datos[0].map(header => `
+              <th>${sanitizarTexto(header)}</th>
+            `).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${datos.slice(1).map(row => `
+            <tr>
+              ${row.map(cell => `
+                <td>${sanitizarTexto(cell)}</td>
+              `).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      
+      <div class="footer">
+        Generado automáticamente el ${new Date().toLocaleDateString()} 
+        a las ${new Date().toLocaleTimeString()}
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+/**
+ * Crea un PDF divino desde HTML
+ * @param {string} html - HTML bendito
+ * @return {Blob} PDF sagrado
+ */
+function crearPDFDivino(html) {
+  const blobBendito = Utilities.newBlob(html, 'text/html', 'reporte_temp.html');
+  const pdfSagrado = blobBendito.getAs('application/pdf');
+  
+  return DriveApp.createFile(pdfSagrado)
+    .setName(`Reporte_Sagrado_${formatearFechaDivina()}.pdf`);
+}
+
+/**
+ * Envía un documento sagrado por Telegram
+ * @param {string} chatId - ID del chat
+ * @param {Blob} archivo - Archivo bendito
+ */
+function enviarDocumentoSagrado(chatId, archivo) {
+  const holyConfig = getHolyConfig();
+  
+  const holyOptions = {
+    method: 'post',
+    payload: {
+      chat_id: chatId,
+      document: archivo.getAs('application/pdf')
+    },
+    muteHttpExceptions: true
+  };
+  
+  const response = UrlFetchApp.fetch(
+    `https://api.telegram.org/bot${holyConfig.TELEGRAM_TOKEN}/sendDocument`,
+    holyOptions
+  );
+  
+  const responseData = JSON.parse(response.getContentText());
+  
+  // 🧹 Limpieza celestial (eliminar archivo temporal)
+  DriveApp.getFileById(archivo.getId()).setTrashed(true);
+  
+  if (!responseData.ok) {
+    throw new Error(`Error al enviar PDF: ${responseData.description}`);
+  }
+  
+  return responseData;
+}
+
+// =============================================
+// ✝️ FUNCIONES AUXILIARES BENDITAS ✝️
+// =============================================
+
+/**
+ * Sanitiza texto para HTML
+ * @param {string} texto - Texto del mortal
+ * @return {string} Texto purificado
+ */
+function sanitizarTexto(texto) {
+  return String(texto)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Formatea fecha para nombres de archivo
+ * @return {string} Fecha bendita
+ */
+function formatearFechaDivina() {
+  const ahora = new Date();
+  return [
+    ahora.getFullYear(),
+    (ahora.getMonth() + 1).toString().padStart(2, '0'),
+    ahora.getDate().toString().padStart(2, '0'),
+    ahora.getHours().toString().padStart(2, '0'),
+    ahora.getMinutes().toString().padStart(2, '0')
+  ].join('');
+}
+
+// =============================================
+// 🌟 FUNCIONES DE CONFIGURACIÓN DIVINA 🌟
+// =============================================
+
+/**
+ * Configura el webhook celestial
+ */
+function configurarWebhookDivino() {
+  const holyConfig = getHolyConfig();
+  
+  const response = UrlFetchApp.fetch(
+    `https://api.telegram.org/bot${holyConfig.TELEGRAM_TOKEN}/setWebhook`, 
+    {
+      method: "post",
+      payload: { url: holyConfig.WEBHOOK_URL }
+    }
+  );
+  
+  enviarMensajeSagrado(
+    holyConfig.ADMIN_CHAT_ID, 
+    "🌐 <b>WEBHOOK CONFIGURADO DIVINAMENTE</b>\n\n" +
+    `<code>${holyConfig.WEBHOOK_URL}</code>`,
+    true
+  );
+}
+
+/**
+ * Función de prueba divina
+ */
+function pruebaDivina() {
+  const holyConfig = getHolyConfig();
+  
+  // ✨ Escribir en la hoja sagrada
+  const libroSagrado = SpreadsheetApp.openById(holyConfig.SHEET_ID);
+  libroSagrado.getSheetByName(holyConfig.BONO_SHEET_NAME)
+    .getRange("A1")
+    .setValue(`✨ ${new Date().toLocaleString()}`);
+  
+  // 📨 Notificar al sumo sacerdote
+  enviarMensajeSagrado(
+    holyConfig.ADMIN_CHAT_ID, 
+    "⚡ <b>PRUEBA DIVINA EXITOSA</b>\n\n" +
+    "El sistema está funcionando perfectamente, mi rey/reina 💖",
+    true
+  );
+}
+
+// Solución: Verifica el chatId con este código de diagnóstico
+function verificarChatId() {
+  const holyConfig = getHolyConfig();
+  enviarMensajeSagrado(
+    holyConfig.ADMIN_CHAT_ID,
+    `🆔 <b>TU CHAT ID ES:</b> <code>${holyConfig.ADMIN_CHAT_ID}</code>\n\n` +
+    "Por favor verifica que este ID sea correcto",
+    true
+  );
+}
+
+function pruebaManual() {
+  const holyConfig = getHolyConfig();
+  enviarMensajeSagrado(
+    holyConfig.ADMIN_CHAT_ID,
+    "✉️ <b>PRUEBA MANUAL</b>\n\n" +
+    "Si recibes este mensaje, el chatId es correcto",
+    true
+  );
+}
+function obtenerChatId() {
+  const holyConfig = getHolyConfig(); // Obtenemos la configuración sagrada
+  
+  const response = UrlFetchApp.fetch(
+    `https://api.telegram.org/bot${holyConfig.TELEGRAM_TOKEN}/getUpdates`
+  );
+  
+  const data = JSON.parse(response.getContentText());
+  
+  // Mostramos los resultados en los logs
+  console.log("🔍 Datos recibidos de Telegram:", JSON.stringify(data, null, 2));
+  
+  // Enviamos por email (opcional)
+  MailApp.sendEmail(
+    Session.getActiveUser().getEmail(),
+    "📲 Chat IDs de Telegram - " + new Date(),
+    JSON.stringify(data.result, null, 2)
+  );
+  function pruebaEnvioPDF() {
+  const holyConfig = getHolyConfig();
+  
+  // Crear PDF de prueba
+  const html = "<h1>Prueba de PDF</h1><p>Este es un PDF de prueba generado el " + new Date() + "</p>";
+  const pdf = Utilities.newBlob(html, 'text/html', 'test.html').getAs('application/pdf');
+  
+  // Enviar
+  const response = UrlFetchApp.fetch(
+    `https://api.telegram.org/bot${holyConfig.TELEGRAM_TOKEN}/sendDocument`, 
+    {
+      method: 'post',
+      payload: {
+        chat_id: holyConfig.ADMIN_CHAT_ID,
+        document: pdf
+      }
+    }
+  );
+  
+  console.log("Respuesta de Telegram:", response.getContentText());
+}
+  
+  return "✨ Consulta los logs o tu email para ver los resultados";
+}

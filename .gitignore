@@ -1,0 +1,23 @@
+# Entorno virtual
+venv/
+.env
+
+# Archivos temporales
+*.tmp
+*.temp
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Archivos de VS Code
+.vscode/
+
+# Archivos CSV de prueba (opcional)
+ejemplo_*.csv
