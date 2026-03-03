@@ -41,7 +41,7 @@ class PDF(FPDF):
     
     def header(self):
         self.set_font('Arial', 'B', 10)
-        self.cell(0, 5, "CONGRESO 2025 - RESUMEN DE BONOS", 0, 1, 'C')
+        self.cell(0, 5, "CONGRESO 2026 - RESUMEN DE BONOS", 0, 1, 'C')
         self.cell(0, 5, datetime.now().strftime('%d/%m/%Y'), 0, 1, 'C')
         self.ln(5)
         
