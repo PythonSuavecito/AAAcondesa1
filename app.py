@@ -39,7 +39,7 @@ class PDF(FPDF):
     
     def header(self):
         self.set_font('Arial', 'B', 10)
-        self.cell(0, 5, "CONGRESO 2025 - RESUMEN DE BONOS", 0, 1, 'C')
+        self.cell(0, 5, "CONGRESO 2026 - RESUMEN DE BONOS", 0, 1, 'C')
         self.cell(0, 5, datetime.now().strftime('%d/%m/%Y'), 0, 1, 'C')
         self.ln(5)
         
@@ -202,7 +202,7 @@ def crear_pdf_aniversarios(df):
     total_festejados = len(df)
     
     # Encabezado
-    encabezado_texto = f"ANIVERSARIO DICIEMBRE 2025 - TOTAL: {total_festejados} FESTEJADOS"
+    encabezado_texto = f"ANIVERSARIO MAYO 2026 - TOTAL: {total_festejados} FESTEJADOS"
     p_encabezado = Paragraph(encabezado_texto, estilo_encabezado)
     p_encabezado.wrapOn(c, width - 2*inch, 50)
     p_encabezado.drawOn(c, inch, height - 0.5*inch)
